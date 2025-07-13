@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Confess to Your Crush - Versi Baru</title>
+<title>Confess to Your Crush - Versi Mewah</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;600&display=swap');
 
@@ -136,17 +136,40 @@
     z-index: 9999;
   }
 
+  /* Sprite Animasi */
+  #spriteAnimContainer {
+    margin: 0 auto 1.5rem;
+    width: 180px;
+    height: 180px;
+    overflow: visible;
+    pointer-events: none;
+    user-select: none;
+    filter: drop-shadow(0 8px 12px rgba(50, 70, 125, 0.75));
+  }
+
+  #spriteAnimContainer img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    user-select: none;
+    display: block;
+    margin: 0 auto;
+  }
+
 </style>
 </head>
 <body>
 
 <div id="app" aria-live="polite" aria-atomic="true">
+  <!-- Panel input nama -->
   <div id="namePanel">
     <h1>Isi namamu dulu</h1>
     <input type="text" id="inputName" placeholder="Nama kamu..." autocomplete="off" aria-label="Masukkan nama kamu" />
     <button id="submitName">Kirim</button>
   </div>
 
+  <!-- Panel confess dan pilihan -->
   <div id="confessPanel" class="hidden" aria-live="polite" aria-atomic="true">
     <div id="confess-text" aria-label="Kata-kata cinta"></div>
     <div id="question" class="hidden">Apakah kamu mau?</div>
@@ -156,20 +179,26 @@
     </div>
   </div>
 
+  <!-- Panel akhir dengan quotes dan animasi sprite -->
   <div id="finalPanel" class="hidden" role="alert" aria-live="assertive" aria-atomic="true">
+    <div id="spriteAnimContainer" aria-hidden="true">
+      <img id="spriteAnim" src="anim/anim1.png" alt="" />
+    </div>
     <h1 id="finalQuote"></h1>
   </div>
 </div>
 
+<!-- Container partikel konfeti -->
 <div id="particles"></div>
 
+<!-- Audio -->
 <audio id="audioMau" src="sound/mau.mp3" preload="auto"></audio>
 <audio id="audioTidak" src="sound/tidak.mp3" preload="auto"></audio>
 <audio id="audioKaget" src="sound/kaget.mp3" preload="auto"></audio>
 <audio id="audioMusik" src="sound/musik.mp3" preload="auto" loop></audio>
 
 <script>
-// === Variable DOM ===
+// --- Variable DOM
 const namePanel = document.getElementById('namePanel');
 const confessPanel = document.getElementById('confessPanel');
 const finalPanel = document.getElementById('finalPanel');
@@ -187,191 +216,72 @@ const audioTidak = document.getElementById('audioTidak');
 const audioKaget = document.getElementById('audioKaget');
 const audioMusik = document.getElementById('audioMusik');
 
-// Fungsi menggenerate kata cinta
+const spriteFrames = [
+  'anim/anim1.png',
+  'anim/anim2.png',
+  'anim/anim3.png',
+  'anim/anim4.png',
+  'anim/anim5.png'
+];
+const spriteAnimImg = document.getElementById('spriteAnim');
+const spriteAnimContainer = document.getElementById('spriteAnimContainer');
+let spriteIndex = 0;
+let spriteAnimInterval = null;
+
+// --- Fungsi dan event utama
+
 function generateConfession(name) {
   return `Hai <strong>${name}</strong>, aku cuma ingin bilang jujur kalau perasaanku ini bukan sekadar biasa. Aku suka kamu lebih dari yang bisa aku ungkapkan dengan kata-kata. Maukah kamu jadi alasanku tersenyum setiap hari? ❤️`;
 }
 
-// Fungsi efek ketikan dengan Promise agar bisa "await"
 async function typeText(element, text, speed = 40) {
   element.innerHTML = '';
   let i = 0;
-
-  while (i < text.length) {
-    // Tambahkan huruf satu per satu
-    element.innerHTML += text.charAt(i) === '<'
-      ? await getHtmlTag(text, i, element)
-      : text.charAt(i);
-
-    if (text.charAt(i) === '<') {
-      // Skip HTML tag handled inside getHtmlTag()
-      i = await skipHtmlTag(text, i);
-    } else {
-      i++;
-      await sleep(speed);
-    }
-  }
 
   function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  // Fungsi untuk mengambil konten tag HTML sampai '>', mengembalikan konten tag untuk innerHTML sekaligus display
-  function getHtmlTag(str, idx, elm) {
-    return new Promise(resolve => {
-      let endIdx = str.indexOf('>', idx);
-      if(endIdx === -1) endIdx = idx;
-      // langsung masukkan seluruh tag sekaligus agar innerHTML valid saat typing
-      elm.innerHTML += str.substring(idx, endIdx+1);
-      resolve('');
-    });
-  }
-
-  // Fungsi skip index sampai akhir tag
-  function skipHtmlTag(str, idx) {
-    return new Promise(resolve => {
-      let endIdx = str.indexOf('>', idx);
-      resolve(endIdx !== -1 ? endIdx + 1 : idx + 1);
-    });
+  while (i < text.length) {
+    if (text.charAt(i) === '<') {
+      // Ambil seluruh tag HTML utuh
+      let tagEnd = text.indexOf('>', i);
+      if (tagEnd === -1) tagEnd = i;
+      element.innerHTML += text.substring(i, tagEnd + 1);
+      i = tagEnd + 1;
+    } else {
+      element.innerHTML += text.charAt(i);
+      i++;
+      await sleep(speed);
+    }
   }
 }
 
-// Event submit nama
-submitName.addEventListener('click', async () => {
-  const name = inputName.value.trim();
-  if (name.length < 2) {
-    alert('Mohon isi nama dengan benar ya!');
-    return;
-  }
-  // UI transition
-  submitName.disabled = true;
-  inputName.disabled = true;
+// Start sprite animasi loop
+function startSpriteAnimation() {
+  if (spriteAnimInterval) clearInterval(spriteAnimInterval);
+  spriteAnimContainer.style.display = 'block';
+  spriteIndex = 0;
+  spriteAnimImg.src = spriteFrames[spriteIndex];
 
-  // Sembunyikan panel input nama perlahan
-  namePanel.style.transition = 'opacity 0.6s ease';
-  namePanel.style.opacity = '0';
-  await sleep(600);
-  namePanel.classList.add('hidden');
-  namePanel.style.opacity = '1';
-
-  confessPanel.classList.remove('hidden');
-  confessText.innerHTML = '';
-  question.classList.add('hidden');
-  btnGroup.classList.add('hidden');
-
-  // Efek ketikan kata tambahkan
-  await typeText(confessText, generateConfession(name), 35);
-
-  // Tampilkan pertanyaan dan tombol dengan animasi fade-in
-  question.classList.remove('hidden');
-  btnGroup.classList.remove('hidden');
-  question.style.opacity = '0';
-  btnGroup.style.opacity = '0';
-  question.style.transition = 'opacity 0.8s ease';
-  btnGroup.style.transition = 'opacity 0.8s ease';
-  setTimeout(() => {
-    question.style.opacity = '1';
-    btnGroup.style.opacity = '1';
-  }, 50);
-
-  submitName.disabled = false;
-  inputName.disabled = false;
-});
-
-// Tombol "Mau" ditekan
-btnYes.addEventListener('click', () => {
-  audioMau.currentTime = 0;
-  audioMau.play();
-
-  // transisi confess panel hilang halus
-  confessPanel.style.transition = 'opacity 0.8s ease';
-  confessPanel.style.opacity = '0';
-  btnGroup.style.pointerEvents = 'none'; // disable tombol
-
-  setTimeout(() => {
-    confessPanel.classList.add('hidden');
-    finalPanel.classList.remove('hidden');
-    finalPanel.style.opacity = '0';
-
-    // Quotes inspiratif menggantikan "Senang Mendadak"
-    const inspirationalQuotes = [
-      '“Cinta sejati bukan hanya dirasakan, tapi juga diterima dengan hati.”',
-      '“Bahagia bukan ketika kamu mendapatkan yang terbaik, tapi ketika menerima yang ada dengan cinta.”',
-      '“Menerima adalah awal dari kebahagiaan yang tulus.”',
-      '“Saat kau mengatakan iya, dunia terasa lebih cerah dan penuh warna.”',
-      '“Cinta yang diterima adalah hadiah terindah dalam kehidupan.”'
-    ];
-    const selectedQuote = inspirationalQuotes[Math.floor(Math.random() * inspirationalQuotes.length)];
-    finalQuote.textContent = selectedQuote;
-
-    // Fade in quotes
-    finalPanel.style.transition = 'opacity 1s ease';
-    setTimeout(() => {
-      finalPanel.style.opacity = '1';
-    }, 50);
-
-    // Mulai perayaan konfeti dan suara
-    startCelebration();
-  }, 800);
-});
-
-// Variabel untuk mengatur ukuran dan opacity tombol "Tidak"
-let scaleNo = 1;
-let opacityNo = 1;
-
-// Tombol "Tidak" ditekan
-btnNo.addEventListener('click', () => {
-  audioTidak.currentTime = 0;
-  audioTidak.play();
-
-  // Perkecil dan kurangi opacity tombol "Tidak"
-  scaleNo = Math.max(scaleNo * 0.65, 0.1);
-  opacityNo = Math.max(opacityNo - 0.22, 0);
-
-  btnNo.style.transition = 'transform 0.4s ease, opacity 0.4s ease';
-  btnNo.style.transform = `scale(${scaleNo})`;
-  btnNo.style.opacity = `${opacityNo}`;
-
-  // Besarkan tombol "Mau" sedikit, maksimal 2.5x
-  let currentScaleYes = getScale(btnYes.style.transform);
-  let newScaleYes = Math.min(currentScaleYes + 0.25, 2.5);
-  btnYes.style.transform = `scale(${newScaleYes})`;
-  btnYes.style.transition = 'transform 0.4s ease';
-
-  // Jika tombol "Tidak" sudah benar-benar hilang, disable aja biar gak bisa dipencet
-  if (opacityNo <= 0.05) {
-    btnNo.disabled = true;
-    btnNo.style.pointerEvents = 'none';
-  }
-});
-
-// Helper untuk membaca nilai scale dari style transform
-function getScale(transformString) {
-  if(!transformString || transformString === 'none') return 1;
-  const match = transformString.match(/scale\(([\d.]+)\)/);
-  if(match && match[1]) return parseFloat(match[1]);
-  return 1;
+  spriteAnimInterval = setInterval(() => {
+    spriteIndex = (spriteIndex + 1) % spriteFrames.length;
+    spriteAnimImg.src = spriteFrames[spriteIndex];
+  }, 300);
 }
 
-// Animasi partikel konfeti ketika confess diterima
+// Stop sprite animasi dan sembunyikan
+function stopSpriteAnimation() {
+  if (spriteAnimInterval) clearInterval(spriteAnimInterval);
+  spriteAnimContainer.style.display = 'none';
+}
+
+// Partikel konfeti
 const particlesDiv = document.getElementById('particles');
-
-function startCelebration() {
-  audioKaget.currentTime = 0;
-  audioKaget.play();
-
-  audioKaget.onended = () => {
-    audioMusik.currentTime = 0;
-    audioMusik.play();
-  }
-
-  createParticles();
-}
-
 function createParticles() {
   const colors = ['#fdd835', '#fbc02d', '#f9a825', '#f57f17', '#ffeb3b', '#ffee58'];
 
-  for(let i = 0; i < 140; i++) {
+  for (let i = 0; i < 140; i++) {
     const particle = document.createElement('div');
     const size = Math.random() * 7 + 4;
     particle.style.position = 'fixed';
@@ -388,24 +298,158 @@ function createParticles() {
 
     particlesDiv.appendChild(particle);
 
-    // animasi jatuh dan rotasi acak
     setTimeout(() => {
       particle.style.transform = `translateY(${window.innerHeight}px) rotate(${Math.random() * 720}deg) scale(${Math.random() + 0.3})`;
       particle.style.opacity = '0';
     }, 60 + Math.random() * 1200);
 
-    // hapus setelah animasi selesai
     setTimeout(() => {
       particle.remove();
     }, 3600);
   }
 }
 
-// Simple utility delay
+function startCelebration() {
+  audioKaget.currentTime = 0;
+  audioKaget.play();
+
+  audioKaget.onended = () => {
+    audioMusik.currentTime = 0;
+    audioMusik.play();
+  };
+
+  createParticles();
+}
+
+// Simple delay util
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// Tombol submit nama
+submitName.addEventListener('click', async () => {
+  const name = inputName.value.trim();
+  if (name.length < 2) {
+    alert('Mohon isi nama dengan benar ya!');
+    return;
+  }
+
+  submitName.disabled = true;
+  inputName.disabled = true;
+
+  // Fade out input panel
+  namePanel.style.transition = 'opacity 0.6s ease';
+  namePanel.style.opacity = '0';
+  await sleep(600);
+  namePanel.classList.add('hidden');
+  namePanel.style.opacity = '1';
+
+  confessPanel.classList.remove('hidden');
+  confessText.innerHTML = '';
+  question.classList.add('hidden');
+  btnGroup.classList.add('hidden');
+
+  // Efek ketikan
+  await typeText(confessText, generateConfession(name), 35);
+
+  // Tampilkan pertanyaan dan tombol
+  question.classList.remove('hidden');
+  btnGroup.classList.remove('hidden');
+
+  // Animasi fade in
+  question.style.opacity = '0';
+  btnGroup.style.opacity = '0';
+  question.style.transition = 'opacity 0.8s ease';
+  btnGroup.style.transition = 'opacity 0.8s ease';
+  setTimeout(() => {
+    question.style.opacity = '1';
+    btnGroup.style.opacity = '1';
+  }, 50);
+
+  submitName.disabled = false;
+  inputName.disabled = false;
+
+  // Reset tombol dan opacity "Tidak"
+  scaleNo = 1;
+  opacityNo = 1;
+  btnNo.style.transform = 'scale(1)';
+  btnNo.style.opacity = '1';
+  btnNo.disabled = false;
+  btnNo.style.pointerEvents = 'auto';
+
+  btnYes.style.transform = 'scale(1)';
+});
+
+// Variabel untuk tombol "Tidak"
+let scaleNo = 1;
+let opacityNo = 1;
+
+// Tombol "Mau"
+btnYes.addEventListener('click', () => {
+  audioMau.currentTime = 0;
+  audioMau.play();
+
+  confessPanel.style.transition = 'opacity 0.8s ease';
+  confessPanel.style.opacity = '0';
+  btnGroup.style.pointerEvents = 'none';
+
+  setTimeout(() => {
+    confessPanel.classList.add('hidden');
+    finalPanel.classList.remove('hidden');
+    finalPanel.style.opacity = '0';
+
+    const quotes = [
+      '“Cinta sejati bukan hanya dirasakan, tapi juga diterima dengan hati.”',
+      '“Bahagia bukan ketika kamu mendapatkan yang terbaik, tapi ketika menerima yang ada dengan cinta.”',
+      '“Menerima adalah awal dari kebahagiaan yang tulus.”',
+      '“Saat kau mengatakan iya, dunia terasa lebih cerah dan penuh warna.”',
+      '“Cinta yang diterima adalah hadiah terindah dalam kehidupan.”'
+    ];
+    const selectedQuote = quotes[Math.floor(Math.random() * quotes.length)];
+    finalQuote.textContent = selectedQuote;
+
+    // Fade in panel
+    finalPanel.style.transition = 'opacity 1s ease';
+    setTimeout(() => {
+      finalPanel.style.opacity = '1';
+    }, 50);
+
+    startSpriteAnimation();
+    startCelebration();
+  }, 800);
+});
+
+// Tombol "Tidak"
+btnNo.addEventListener('click', () => {
+  audioTidak.currentTime = 0;
+  audioTidak.play();
+
+  scaleNo = Math.max(scaleNo * 0.65, 0.1);
+  opacityNo = Math.max(opacityNo - 0.22, 0);
+
+  btnNo.style.transition = 'transform 0.4s ease, opacity 0.4s ease';
+  btnNo.style.transform = `scale(${scaleNo})`;
+  btnNo.style.opacity = `${opacityNo}`;
+
+  // Besarkan tombol "Mau"
+  let currentScaleYes = getScale(btnYes.style.transform);
+  let newScaleYes = Math.min(currentScaleYes + 0.25, 2.5);
+  btnYes.style.transform = `scale(${newScaleYes})`;
+  btnYes.style.transition = 'transform 0.4s ease';
+
+  // Nonaktifkan jika sudah hilang
+  if (opacityNo <= 0.05) {
+    btnNo.disabled = true;
+    btnNo.style.pointerEvents = 'none';
+  }
+});
+
+function getScale(transformString) {
+  if(!transformString || transformString === 'none') return 1;
+  const match = transformString.match(/scale\(([\d.]+)\)/);
+  if(match && match[1]) return parseFloat(match[1]);
+  return 1;
+}
 </script>
 
 </body>
