@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Confess to Your Crush</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;600&display=swap');
+
+  * {
+    box-sizing: border-box;
+  }
+  body, html {
+    height: 100%;
+    margin: 0;
+    font-family: 'Montserrat', sans-serif;
+    background: linear-gradient(135deg, #2c3e50, #3498db);
+    color: #f7f9fc;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+  }
+  #app {
+    background: rgba(255 255 255 / 0.1);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    padding: 2rem 3rem;
+    width: 90%;
+    max-width: 420px;
+    text-align: center;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  h1 {
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #f8f7f2;
+    text-shadow: 1px 1px 7px #0e224c;
+  }
+  input[type="text"] {
+    width: 100%;
+    padding: 12px 15px;
+    border-radius: 10px;
+    border: none;
+    font-size: 1.1rem;
+    color: #222;
+    font-weight: 400;
+    outline: none;
+    transition: box-shadow 0.3s ease;
+  }
+  input[type="text"]:focus {
+    box-shadow: 0 0 10px #fdcb6e;
+  }
+  button {
+    margin-top: 1.6rem;
+    background: #fdcb6e;
+    border: none;
+    color: #2c3e50;
+    font-weight: 600;
+    padding: 14px 32px;
+    border-radius: 25px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(253,203,110,0.6);
+    user-select: none;
+  }
+  button:hover {
+    background: #f2a900;
+    box-shadow: 0 8px 20px rgba(242,169,0,0.7);
+  }
+
+  .hidden {
+    display: none;
+  }
+
+  #confess-text {
+    font-size: 1.3rem;
+    margin-bottom: 2rem;
+    font-weight: 300;
+    line-height: 1.5;
+    color: #f7f7f7;
+    text-shadow: 0 0 10px #fdcb6e;
+  }
+
+  #question {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+  }
+
+  #btnGroup {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+  }
+
+  #btnGroup button {
+    flex: 1;
+    transition-property: transform, box-shadow;
+  }
+
+  /* Begin particle container */
+  #particles {
+    pointer-events: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: visible;
+    z-index: 9999;
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="namePanel">
+    <h1>Isi namamu dulu</h1>
+    <input type="text" id="inputName" placeholder="Nama kamu..." autocomplete="off" />
+    <button id="submitName">Kirim</button>
+  </div>
+
+  <div id="confessPanel" class="hidden">
+    <div id="confess-text"></div>
+    <div id="question" class="hidden">Apakah kamu mau?</div>
+    <div id="btnGroup" class="hidden">
+      <button id="btnYes" style="transform: scale(1);">Mau</button>
+      <button id="btnNo" style="transform: scale(1);">Tidak</button>
+    </div>
+  </div>
+
+  <div id="finalPanel" class="hidden">
+    <h1>Senang Mendadak! 😍</h1>
+  </div>
+</div>
+
+<div id="particles"></div>
+
+<audio id="audioMau" src="sound/mau.mp3"></audio>
+<audio id="audioTidak" src="sound/tidak.mp3"></audio>
+<audio id="audioKaget" src="sound/kaget.mp3"></audio>
+<audio id="audioMusik" src="sound/musik.mp3" loop></audio>
+
+<script>
+// Elemen utama
+const namePanel = document.getElementById('namePanel');
+const confessPanel = document.getElementById('confessPanel');
+const finalPanel = document.getElementById('finalPanel');
+const inputName = document.getElementById('inputName');
+const submitName = document.getElementById('submitName');
+const confessText = document.getElementById('confess-text');
+const question = document.getElementById('question');
+const btnGroup = document.getElementById('btnGroup');
+const btnYes = document.getElementById('btnYes');
+const btnNo = document.getElementById('btnNo');
+
+const audioMau = document.getElementById('audioMau');
+const audioTidak = document.getElementById('audioTidak');
+const audioKaget = document.getElementById('audioKaget');
+const audioMusik = document.getElementById('audioMusik');
+
+// Kata-kata cinta elegan (bisa diubah sesuai selera)
+function generateConfession(name) {
+  return `Hai <strong>${name}</strong>, aku cuma ingin bilang jujur kalau perasaanku ini bukan sekadar biasa. Aku suka kamu lebih dari yang bisa aku ungkapkan dengan kata-kata. Maukah kamu jadi alasanku tersenyum setiap hari? ❤️`;
+}
+
+// Variabel untuk skala tombol
+let scaleYes = 1;
+let scaleNo = 1;
+
+// Submit nama
+submitName.addEventListener('click', () => {
+  const name = inputName.value.trim();
+  if(name.length < 2) {
+    alert('Mohon isi nama dengan benar ya!');
+    return;
+  }
+  // Tampilkan confess panel
+  namePanel.classList.add('hidden');
+  confessPanel.classList.remove('hidden');
+
+  confessText.innerHTML = generateConfession(name);
+  question.classList.remove('hidden');
+  btnGroup.classList.remove('hidden');
+
+  // Reset skala tombol
+  scaleYes = 1;
+  scaleNo = 1;
+  btnYes.style.transform = `scale(${scaleYes})`;
+  btnNo.style.transform = `scale(${scaleNo})`;
+});
+
+// Tombol "Mau" ditekan
+btnYes.addEventListener('click', async () => {
+  audioMau.play();
+  // Hilangkan semua panel
+  confessPanel.style.opacity = '0';
+  btnGroup.style.pointerEvents = 'none';
+
+  // Delay fadeout animation
+  setTimeout(() => {
+    confessPanel.classList.add('hidden');
+
+    finalPanel.classList.remove('hidden');
+    finalPanel.style.opacity = '0';
+    finalPanel.style.transition = 'opacity 1s ease-in-out';
+    setTimeout(() => {
+      finalPanel.style.opacity = '1';
+    }, 50);
+
+    startCelebration();
+
+  }, 700);
+});
+
+// Tombol "Tidak" ditekan
+btnNo.addEventListener('click', () => {
+  audioTidak.play();
+
+  // Tombol "tidak" mengecil
+  scaleNo = Math.max(scaleNo * 0.7, 0.4);
+  btnNo.style.transform = `scale(${scaleNo})`;
+  btnNo.style.transition = 'transform 0.3s';
+
+  // Tombol "mau" membesar
+  scaleYes = Math.min(scaleYes * 1.3, 2.5);
+  btnYes.style.transform = `scale(${scaleYes})`;
+  btnYes.style.transition = 'transform 0.3s';
+});
+
+// --- Partikel Konfeti ---
+const particlesDiv = document.getElementById('particles');
+
+function startCelebration() {
+  // Jalankan suara kaget
+  audioKaget.currentTime = 0;
+  audioKaget.play();
+
+  // Setelah suara kaget selesai, mulai musik
+  audioKaget.onended = () => {
+    audioMusik.currentTime = 0;
+    audioMusik.play();
+  }
+
+  createParticles();
+}
+
+// Membuat 100 partikel konfeti yang berjatuhan
+function createParticles() {
+  const colors = ['#ffd700', '#f39c12', '#e67e22', '#e84393', '#00cec9', '#74b9ff'];
+
+  for(let i = 0; i < 150; i++) {
+    const particle = document.createElement('div');
+    particle.style.position = 'fixed';
+    particle.style.width = particle.style.height = (Math.random() * 8 + 4) + 'px';
+    particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+    particle.style.left = (Math.random() * window.innerWidth) + 'px';
+    particle.style.top = (Math.random() * window.innerHeight/2) + 'px';
+    particle.style.opacity = Math.random() * 0.8 + 0.2;
+    particle.style.borderRadius = '50%';
+    particle.style.pointerEvents = 'none';
+    particle.style.zIndex = 9999;
+    particle.style.filter = 'drop-shadow(0 0 5px rgba(255,255,255,0.7))';
+    particle.style.transition = 'transform 3s ease-out, opacity 3s ease-out';
+
+    particlesDiv.appendChild(particle);
+
+    // Animasi jatuh dan berputar
+    setTimeout(() => {
+      particle.style.transform = `translateY(${window.innerHeight}px) rotate(${Math.random() * 720}deg) scale(${Math.random() + 0.3})`;
+      particle.style.opacity = '0';
+    }, 50 + Math.random() * 1000);
+
+    // Hapus particle setelah animasi
+    setTimeout(() => {
+      particle.remove();
+    }, 3500);
+  }
+}
+</script>
+
+</body>
+</html>
